@@ -2,79 +2,136 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>INTERNAL SYSTEM - VIDEO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECURE VAULT V3.1</title>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        video { width: 100%; max-height: 100vh; border: 1px solid #333; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
-        .lock-box { border: 2px solid #e74c3c; padding: 30px; text-align: center; background: #111; }
-        input { padding: 12px; margin: 15px 0; width: 250px; text-align: center; border-radius: 5px; border: 1px solid #444; background: #000; color: #0f0; }
-        button { padding: 10px 20px; background: #e74c3c; color: white; border: none; cursor: pointer; font-weight: bold; }
+        body { 
+            margin: 0; background: #000; color: #fff; 
+            font-family: 'Courier New', monospace; 
+            height: 100vh; overflow: hidden; display: flex;
+            justify-content: center; align-items: center;
+            user-select: none;
+        }
+
+        .container { position: relative; width: 100%; max-width: 1000px; text-align: center; }
+
+        /* Fitur 1: Transparent Overlay tetap ada tapi tidak menutupi tombol kontrol custom */
+        .shield {
+            position: absolute; top: 0; left: 0; width: 100%; height: 85%;
+            z-index: 100; background: rgba(0,0,0,0);
+        }
+
+        video { width: 100%; display: block; filter: contrast(1.1); }
+
+        /* Tombol Play Custom karena tombol asli ketutup shield */
+        .controls {
+            position: relative; z-index: 101; padding: 10px; background: #111;
+        }
+
+        #wm {
+            position: absolute; opacity: 0.15; color: #fff;
+            z-index: 102; pointer-events: none; font-size: 12px;
+            white-space: nowrap; transition: 1s;
+        }
+
+        #overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.99); display: none; 
+            flex-direction: column; justify-content: center; align-items: center; 
+            z-index: 9999; 
+        }
+
+        .lock-box { border: 2px solid #ff0000; padding: 30px; background: #111; text-align: center; }
+        input { padding: 10px; background: #000; color: #0f0; border: 1px solid #333; text-align: center; margin: 10px; }
+        button { padding: 10px 20px; background: red; color: white; border: none; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
-    <!-- Pastikan file videonya namanya 'video_lu.mp4' atau ganti di bawah -->
-    <video id="v" src="video_lu.mp4" controls controlsList="nodownload"></video>
+    <div class="container">
+        <div class="shield"></div>
+        
+        <!-- GANTI 'video_lu.mp4' SESUAI NAMA FILE LU DI VERCEL -->
+        <video id="mainVid" src="video_lu.mp4" controlsList="nodownload" disablePictureInPicture></video>
+        
+        <div class="controls">
+            <button onclick="playVid()">PLAY / PAUSE</button>
+            <span style="font-size: 10px; color: #555; margin-left: 10px;">SECURE STREAM ACTIVE</span>
+        </div>
+
+        <div id="wm">INITIALIZING...</div>
+    </div>
 
     <div id="overlay">
         <div class="lock-box">
-            <h2 style="color:red">SISTEM TERKUNCI</h2>
-            <p>Konfirmasi Identitas (Password Acak)</p>
-            <input type="text" id="repass" placeholder="Ketik Sandi..." autocomplete="off">
+            <h2 style="color:red">AUTHENTICATION REQUIRED</h2>
+            <input type="text" id="repass" placeholder="KODE AKSES" autocomplete="off">
             <br>
-            <button id="unlockBtn">UNLOCK SYSTEM</button>
+            <button onclick="unlock()">RE-AUTHORIZE</button>
         </div>
     </div>
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('access');
-    const vid = document.getElementById('v');
-    const overlay = document.getElementById('overlay');
-    const passwords = ["mbappe", "busquets", "greenwood", "ferdinand", "el knee slide", "espana"];[cite1]
-    let currentPass = "";
+    const vid = document.getElementById('mainVid');
+    
+    // Proteksi URL
+    if (!mode) window.location.href = "login.html";
 
-    // 1. CEK OTORISASI (PENTING!)
-    if (!mode) {
-        window.location.href = "login.html"; // Tendang kalau masuk ilegal
+    function playVid() {
+        if (vid.paused) vid.play();
+        else vid.pause();
     }
 
-    // 2. LOGIKA LIMIT 10 DETIK
+    // Watermark Dinamis
+    function updateVisuals() {
+        const x = Math.random() * 80;
+        const y = Math.random() * 70;
+        const wm = document.getElementById('wm');
+        wm.style.left = x + "%";
+        wm.style.top = y + "%";
+        wm.innerText = `SISTEM_ANTI_BAJAKAN: ${Math.random().toString(36).substring(5).toUpperCase()}`;
+    }
+    setInterval(updateVisuals, 6000);
+
+    // Timer 10 Detik
     if (mode === "restricted_mode") {
         setInterval(() => {
             if (!vid.paused) {
-                lock();
+                vid.pause();
+                lockSistem();
             }
-        }, 10000); // 10 Detik pas
+        }, 10000);
     }
 
-    function lock() {
-        vid.pause();
-        currentPass = passwords[Math.floor(Math.random() * passwords.length)];
-        overlay.style.display = "flex";
-        document.getElementById('repass').value = "";
-        document.getElementById('repass').focus();
-        console.log("Password sekarang: " + currentPass); 
+    let currentPass = "";
+    const listPass = ["mbappe", "busquets", "greenwood", "ferdinand", "el knee slide", "espana", "admin1234", "bypass", "nero", "req", "videoterlarang"];
+
+    function lockSistem() {
+        currentPass = listPass[Math.floor(Math.random() * listPass.length)];
+        document.getElementById('overlay').style.display = "flex";
+        console.log("KEY: " + currentPass);[cite1]
     }
 
     function unlock() {
-        const input = document.getElementById('repass').value.trim().toLowerCase();
-        if (input === currentPass) {
-            overlay.style.display = "none";
+        if (document.getElementById('repass').value.trim().toLowerCase() === currentPass) {
+            document.getElementById('overlay').style.display = "none";
             vid.play();
         } else {
-            alert("Salah! Akses ditolak.");
+            alert("AKSES DITOLAK!");[cite1]
+            location.reload();
         }
     }
 
-    document.getElementById('unlockBtn').addEventListener('click', unlock);
-    document.getElementById('repass').addEventListener('keypress', (e) => { if (e.key === 'Enter') unlock(); });
-
-    // Gimmick Anti-Screenshot / Perekam
-    window.addEventListener('blur', () => { document.body.style.display = 'none'; });
-    window.addEventListener('focus', () => { document.body.style.display = 'block'; });
+    // Gimmick Anti-Screenshot[cite: 1]
+    window.addEventListener('blur', () => { 
+        document.body.style.opacity = "0";
+        vid.pause();
+    });
+    window.addEventListener('focus', () => { 
+        document.body.style.opacity = "1";
+    });
 </script>
-
 </body>
 </html>
