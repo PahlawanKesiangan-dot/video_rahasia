@@ -3,135 +3,334 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SECURE VAULT V3.1</title>
+    <link rel="manifest" href="manifest.json">
+    <title>Kickoff Store</title>
     <style>
+        /* ========================================== */
+        /* 1. VARIABEL WARNA & SETUP DASAR MOBILE     */
+        /* ========================================== */
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-red: #ff003c;
+            --bg-color: #050505;
+            --card-bg: #111111;
+        }
+
+        * {
+            box-sizing: border-box; /* Mencegah UI berantakan karena padding */
+        }
+
         body { 
-            margin: 0; background: #000; color: #fff; 
-            font-family: 'Courier New', monospace; 
-            height: 100vh; overflow: hidden; display: flex;
+            margin: 0; padding: 0; background: var(--bg-color); color: #fff; 
+            font-family: 'Courier New', Courier, monospace; 
+            user-select: none; overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent; /* Hilangin kotak biru pas dipencet di HP */
+        }
+
+        header { 
+            text-align: center; padding: 25px 10px; 
+            border-bottom: 2px solid var(--neon-blue); 
+            box-shadow: 0 0 15px var(--neon-blue); 
+            background: #0a0a0a;
+        }
+
+        h1 { 
+            color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); 
+            margin: 0; font-size: 1.8rem; letter-spacing: 2px;
+        }
+
+        /* ========================================== */
+        /* 2. ETALASE JERSEY (RESPONSIF PONSEL)       */
+        /* ========================================== */
+        .marketplace {
+            display: grid;
+            /* Trik CSS biar otomatis 2 kolom di HP, tapi bisa melebar di MSI lu */
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+            gap: 20px; padding: 20px; max-width: 1000px; margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card-bg); border: 1px solid #333; padding: 15px;
+            text-align: center; border-radius: 10px; transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+
+        .card:active, .card:hover { 
+            border-color: var(--neon-red); 
+            box-shadow: 0 0 15px var(--neon-red); 
+            transform: translateY(-5px);
+        }
+
+        .card img { 
+            width: 100%; height: auto; aspect-ratio: 4/5; 
+            object-fit: cover; border-radius: 5px; margin-bottom: 15px; 
+            border: 1px solid #222;
+        }
+
+        .price { color: #00ff88; font-weight: bold; margin: 10px 0; font-size: 1.1rem; }
+
+        .buy-btn {
+            background: transparent; color: var(--neon-blue); 
+            border: 1px solid var(--neon-blue); border-radius: 5px;
+            padding: 10px; width: 100%; cursor: pointer; 
+            font-weight: bold; font-size: 14px; transition: 0.3s;
+        }
+
+        .buy-btn:active { background: var(--neon-blue); color: #000; }
+
+        /* Tombol Rahasia diubah desainnya biar aman diklik di HP */
+        #secret-trigger {
+            display: block; margin: 60px auto; padding: 15px;
+            background: transparent; color: #1a1a1a; border: 1px solid #1a1a1a;
+            cursor: pointer; width: 90%; max-width: 350px;
+            border-radius: 5px; font-weight: bold; letter-spacing: 1px;
+            position: relative; z-index: 10;
+        }
+        /* ========================================== */
+        /* 3. CSS BRANKAS VIDEO & SISTEM KEAMANAN     */
+        /* ========================================== */
+        #vault-container {
+            display: none; /* Disembunyikan secara default[cite: 1] */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 1000; flex-direction: column;
             justify-content: center; align-items: center;
-            user-select: none;
         }
 
-        .container { position: relative; width: 100%; max-width: 1000px; text-align: center; }
-
-        /* Fitur 1: Transparent Overlay tetap ada tapi tidak menutupi tombol kontrol custom */
         .shield {
-            position: absolute; top: 0; left: 0; width: 100%; height: 85%;
-            z-index: 100; background: rgba(0,0,0,0);
+            position: absolute; top: 0; left: 0; width: 100%; height: 80%;
+            z-index: 1001; background: rgba(0,0,0,0); /* Overlay transparan[cite: 1] */
         }
 
-        video { width: 100%; display: block; filter: contrast(1.1); }
-
-        /* Tombol Play Custom karena tombol asli ketutup shield */
-        .controls {
-            position: relative; z-index: 101; padding: 10px; background: #111;
-        }
-
-        #wm {
-            position: absolute; opacity: 0.15; color: #fff;
-            z-index: 102; pointer-events: none; font-size: 12px;
-            white-space: nowrap; transition: 1s;
+        video { 
+            width: 100%; max-width: 900px; 
+            border: 2px solid var(--neon-red); 
+            box-shadow: 0 0 20px var(--neon-red);
+            filter: contrast(1.1); /*[cite: 1] */
         }
 
         #overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.99); display: none; 
+            background: rgba(0,0,0,0.98); display: none; 
             flex-direction: column; justify-content: center; align-items: center; 
-            z-index: 9999; 
+            z-index: 10000; /*[cite: 1] */
         }
 
-        .lock-box { border: 2px solid #ff0000; padding: 30px; background: #111; text-align: center; }
-        input { padding: 10px; background: #000; color: #0f0; border: 1px solid #333; text-align: center; margin: 10px; }
-        button { padding: 10px 20px; background: red; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .lock-box { 
+            border: 2px solid var(--neon-red); padding: 30px 20px; 
+            width: 90%; max-width: 350px; background: #111; 
+            text-align: center; box-shadow: 0 0 30px var(--neon-red);
+            border-radius: 8px; /*[cite: 1, 3] */
+        }
+
+        .lock-box input { 
+            width: 100%; padding: 15px; background: #000; color: #0f0; 
+            border: 1px solid #444; text-align: center; margin: 20px 0;
+            font-size: 18px; outline: none; border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace; /*[cite: 1, 3] */
+        }
+
+        .lock-box button { 
+            width: 100%; padding: 15px; background: var(--neon-red); 
+            color: #fff; border: none; font-weight: bold; cursor: pointer;
+            border-radius: 5px; font-size: 16px; transition: 0.3s; /*[cite: 1, 3] */
+        }
+        
+        .lock-box button:active { background: #cc0030; }
+
+        #wm {
+            position: absolute; opacity: 0.15; color: #fff; z-index: 1002;
+            pointer-events: none; font-size: 12px; font-weight: bold; /*[cite: 1] */
+        }
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body oncontextmenu="return false;"> <!-- Mencegah klik kanan/tahan layar di HP[cite: 1] -->
 
-    <div class="container">
+    <!-- ========================================== -->
+    <!-- 4. HTML ETALASE JERSEY (PENYAMARAN UTAMA)  -->
+    <!-- ========================================== -->
+    <div id="marketplace-page">
+        <header>
+            <h1>KICKOFF STORE</h1>
+            <p style="color: #888; font-size: 13px; margin-top: 5px;">Authentic & Replica Kits 2026</p>
+        </header>
+
+        <div class="marketplace">
+            <!-- Struktur Gambar dan Teks diperjelas agar tidak menghilang -->
+            <div class="card">
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhoFmCeMlepvzFGlu-QBi01v5m7a2Mw1UCKMH6xVs0K43sanY2TMCEyfIUQdJIQNwGRI8UMmndD3KGzIF28rxisV565GDtBlunaucsWm7LaJ6SXFFBLbSjf974OWqHfnpI4oLlfJ9KKvPgqWzJwxhTddBMDc1V6CZLkT50mtsQxNk2awZgKcbfwt8J1Dhr-/s1000/barca-25-26-home-kit%20(15).jpg" alt="Barcelona Home">
+                <h3>FC Barcelona Home</h3>
+                <p class="price">Rp 850.000</p>
+                <button class="buy-btn" onclick="fakeOrder()">TAMBAH KE TROLI</button>
+            </div>
+            
+            <div class="card">
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjtac97MGoZmFow_dEMMXZHNDyei50Mg4Gmvcqsm5BuUXyTYLSGhr_zXZ4ZslPtzNtMvClN14IYs-vBjlJII1tQN_g2bi-GRjxrP-cfMyNd2pQpDxA2fhyA9zI9FcvjWu-w3LrVwIjBRfuogPZH32BBOdMgMFGyXcaxpclg2kYAP4xxAg-eeDIJj6FSyT4/s870/real-madrid-25-26-home-kit-1.jpg" alt="Real Madrid Home">
+                <h3>Real Madrid Home</h3>
+                <p class="price">Rp 850.000</p>
+                <button class="buy-btn" onclick="fakeOrder()">TAMBAH KE TROLI</button>
+            </div>
+
+            <div class="card">
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6hhbo7XUbg8Ta1kdgDskYINC8GhxNl6OTBQhQOXIK7sU26cPL-er_p2uS69Wl40Ai8TMvMXuKDsDPmyEeFj0rAU0_VsW4BczYAj2dFYZvhX2Y4BG11TbZ2m6h_nT83tfYLQme3L64P8LaQz1OUfaMxkydQlJpZPBRsmjnmZXSCcN7yIO77xQgulkSwidV/s1000/barca-25-26-away-kit%20(6).jpg" alt="Barcelona Away">
+                <h3>FC Barcelona Away</h3>
+                <p class="price">Rp 850.000</p>
+                <button class="buy-btn" onclick="fakeOrder()">TAMBAH KE TROLI</button>
+            </div>
+
+            <div class="card">
+                <img src="https://cdn.sanity.io/images/pu5wtzfc/production/1c639ffa4e905bce8f24e66d53523dc19b163253-2000x3000.jpg/Real-Madrid-adidas-Away-Kit-2025-2026-05.jpg" alt="Real Madrid Away">
+                <h3>Real Madrid Away</h3>
+                <p class="price">Rp 850.000</p>
+                <button class="buy-btn" onclick="fakeOrder()">TAMBAH KE TROLI</button>
+            </div>
+        </div>
+        <!-- Tombol Rahasia di paling bawah (Disamarkan warnanya agar tidak mencolok) -->
+        <button id="secret-trigger" onclick="openVault()">AUTHORIZE_SECURE_PAYMENT</button>
+
+        <footer style="text-align: center; color: #222; font-size: 10px; margin-bottom: 40px; padding: 0 20px;">
+            &copy; 2026 Kickoff Store. All Rights Reserved. <br>
+            Jl. Sukamaju No. 10, Jakarta
+        </footer>
+    </div> <!-- Penutup marketplace-page -->
+
+    <!-- ========================================== -->
+    <!-- 5. SECURE VAULT & OVERLAY (BRANKAS UTAMA)  -->
+    <!-- ========================================== -->
+    <div id="vault-container">
+        <!-- Shield transparan untuk melindungi video dari interaksi langsung -->
         <div class="shield"></div>
         
-        <!-- GANTI 'video_lu.mp4' SESUAI NAMA FILE LU DI VERCEL -->
+        <!-- Video Utama. Ganti 'video_lu.mp4' dengan nama file asli lu nanti -->
         <video id="mainVid" src="video_lu.mp4" controlsList="nodownload" disablePictureInPicture></video>
-        
-        <div class="controls">
-            <button onclick="playVid()">PLAY / PAUSE</button>
-            <span style="font-size: 10px; color: #555; margin-left: 10px;">SECURE STREAM ACTIVE</span>
+
+        <div class="controls" style="margin-top: 20px; z-index: 1005;">
+            <button onclick="playVid()" style="background: transparent; color: var(--neon-red); border: 1px solid var(--neon-red); padding: 12px 30px; cursor: pointer; font-family: 'Courier New', monospace; font-weight: bold; border-radius: 5px;">
+                START_ENCRYPTED_STREAM
+            </button>
         </div>
 
-        <div id="wm">INITIALIZING...</div>
+        <!-- Watermark dinamis untuk mencegah perekaman layar -->
+        <div id="wm">INITIALIZING_ENCRYPTION...</div>
     </div>
 
+    <!-- Layar Pengunci (Hanya muncul saat diminta password) -->
     <div id="overlay">
         <div class="lock-box">
-            <h2 style="color:red">AUTHENTICATION REQUIRED</h2>
-            <input type="text" id="repass" placeholder="KODE AKSES" autocomplete="off">
-            <br>
-            <button onclick="unlock()">RE-AUTHORIZE</button>
+            <h2 style="color:var(--neon-red); margin: 0; font-size: 18px; letter-spacing: 1px;">AUTHORIZATION_REQUIRED</h2>
+            <p style="color: #555; font-size: 10px; margin-top: 5px;">Masukkan Password untuk melanjutkan</p>
+
+            <!-- Input password bertipe 'password' agar karakter tidak terlihat -->
+            <input type="password" id="repass" placeholder="PASSWORD" autocomplete="off">
+
+            <button onclick="unlock()">VERIFY_IDENTITY</button>
+
+            <div style="margin-top: 20px; font-size: 9px; color: #333; letter-spacing: 1px;">
+                ENCRYPTION_STATUS: AES-256 | ACCESS_LEVEL: RESTRICTED
+            </div>
         </div>
     </div>
 
-<script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const mode = urlParams.get('access');
-    const vid = document.getElementById('mainVid');
-    
-    // Proteksi URL
-    if (!mode) window.location.href = "login.html";
+    <!-- ========================================== -->
+    <!-- 6. JAVASCRIPT LOGIC (BAGIAN AWAL)          -->
+    <!-- ========================================== -->
+    <script>
+        const marketplacePage = document.getElementById('marketplace-page');
+        const vaultContainer = document.getElementById('vault-container');
+        const vid = document.getElementById('mainVid');
+        const overlay = document.getElementById('overlay');
+        
+        // Password tunggal sesuai request lu
+        const masterPass = "master-boot"; 
+        let isInitialEntry = false;
 
-    function playVid() {
-        if (vid.paused) vid.play();
-        else vid.pause();
-    }
-
-    // Watermark Dinamis
-    function updateVisuals() {
-        const x = Math.random() * 80;
-        const y = Math.random() * 70;
-        const wm = document.getElementById('wm');
-        wm.style.left = x + "%";
-        wm.style.top = y + "%";
-        wm.innerText = `SISTEM_ANTI_BAJAKAN: ${Math.random().toString(36).substring(5).toUpperCase()}`;
-    }
-    setInterval(updateVisuals, 6000);
-
-    // Timer 10 Detik
-    if (mode === "restricted_mode") {
-        setInterval(() => {
-            if (!vid.paused) {
-                vid.pause();
-                lockSistem();
-            }
-        }, 10000);
-    }
-
-    let currentPass = "";
-    const listPass = ["mbappe", "busquets", "greenwood", "ferdinand", "el knee slide", "espana", "admin1234", "bypass", "nero", "req", "videoterlarang"];
-
-    function lockSistem() {
-        currentPass = listPass[Math.floor(Math.random() * listPass.length)];
-        document.getElementById('overlay').style.display = "flex";
-        console.log("KEY: " + currentPass);[cite1]
-    }
-
-    function unlock() {
-        if (document.getElementById('repass').value.trim().toLowerCase() === currentPass) {
-            document.getElementById('overlay').style.display = "none";
-            vid.play();
-        } else {
-            alert("AKSES DITOLAK!");[cite1]
-            location.reload();
+        // Fungsi pembuka (Trigger dari tombol rahasia)
+        function openVault() {
+            isInitialEntry = true;
+            overlay.style.display = "flex"; // Munculkan layar kunci
+            document.getElementById('repass').focus(); // Otomatis fokus ke kotak input
         }
-    }
 
-    // Gimmick Anti-Screenshot[cite: 1]
-    window.addEventListener('blur', () => { 
-        document.body.style.opacity = "0";
-        vid.pause();
-    });
-    window.addEventListener('focus', () => { 
-        document.body.style.opacity = "1";
-    });
-</script>
+        function fakeOrder() {
+            alert("Sistem Order sedang maintenance.");
+        }
+        // 2. LOGIKA VERIFIKASI (UNLOCK SYSTEM)
+        function unlock() {
+            const inputField = document.getElementById('repass');
+            // Menangani auto-capitalize di HP dengan mengubah input ke huruf kecil semua
+            const inputVal = inputField.value.trim().toLowerCase(); 
+            
+            if (inputVal === masterPass) {
+                // Sembunyikan layar kunci
+                overlay.style.display = "none";
+                inputField.value = "";
+                
+                // Jika ini adalah akses pertama dari marketplace
+                if (isInitialEntry) {
+                    marketplacePage.style.display = "none";
+                    vaultContainer.style.display = "flex";
+                    isInitialEntry = false;
+                    
+                    // Aktifkan fitur keamanan visual
+                    updateVisuals(); 
+                    startAutoLock(); 
+                }
+                
+                // Jalankan video & minta Fullscreen agar optimal di HP
+                vid.play();
+                if (vid.requestFullscreen) { vid.requestFullscreen(); }
+                else if (vid.webkitRequestFullscreen) { vid.webkitRequestFullscreen(); }
+            } else {
+                // Jika salah, sistem akan reset untuk keamanan
+                alert("ACCESS_DENIED: KODE SALAH."); 
+                location.reload(); 
+            }
+        }
+
+        // 3. WATERMARK DINAMIS (ANTI-REKAM LAYAR)
+        function updateVisuals() {
+            const x = Math.random() * 70; // Batas area agar tetap di dalam layar HP
+            const y = Math.random() * 80;
+            const wm = document.getElementById('wm');
+            wm.style.left = x + "%";
+            wm.style.top = y + "%";
+            // Label watermark menggunakan identitas sesi
+            wm.innerText = `SECURE_ID: ${Math.random().toString(36).substring(5).toUpperCase()}`;
+        }
+        // Watermark berpindah posisi setiap 6 detik
+        setInterval(updateVisuals, 6000);
+
+        // 4. SISTEM AUTO-LOCK BERKALA
+        function startAutoLock() {
+            setInterval(() => {
+                // Jika video sedang jalan, hentikan dan minta password ulang setiap 30 detik
+                if (vaultContainer.style.display === "flex" && !vid.paused) {
+                    vid.pause();
+                    overlay.style.display = "flex";
+                }
+            }, 30000); 
+        }
+
+        // 5. STEALTH MODE (ANTI-INTIP)
+        // Jika lu pindah aplikasi atau dapet notif, layar langsung hitam
+        window.addEventListener('blur', () => { 
+            document.body.style.opacity = "0"; 
+            vid.pause();
+        });
+        window.addEventListener('focus', () => { 
+            document.body.style.opacity = "1"; 
+        });
+
+        function playVid() {
+            if (vid.paused) vid.play();
+            else vid.pause();
+        }
+
+        // Memastikan tombol Enter di keyboard HP bisa dipakai buat Unlock
+        document.getElementById('repass').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                unlock();
+            }
+        });
+    </script>
 </body>
 </html>
